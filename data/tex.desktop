@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Tex
+GenericName=Screenshot & OCR Tool
+Comment=Capture the screen and extract text with AI or Tesseract
+Exec=tex
+Icon=tex
+Terminal=false
+Categories=Utility;Graphics;
+Keywords=screenshot;ocr;text;capture;extract;
+StartupWMClass=Tex

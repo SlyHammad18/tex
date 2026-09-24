@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tex"
+version = "0.1.0"
+description = "Tex — Linux screenshot capture with AI text extraction (Tesseract + Gemini/Groq/Cerebras/OpenRouter)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "PySide6-Essentials>=6.6",
+    "mss>=9.0",
+    "Pillow>=10.0",
+    "pytesseract>=0.3.10",
+    "requests>=2.31",
+    "dbus-next>=0.2.3",
+    "python-xlib>=0.33",
+    "tomli-w>=1.0",
+]
+
+[project.optional-dependencies]
+keyring = ["keyring>=24"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+tex = "tex.app:main"
+
+[tool.setuptools.packages.find]
+include = ["tex*"]
