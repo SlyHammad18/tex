@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 
+from PySide6.QtCore import QLoggingCategory, QtMsgType, qInstallMessageHandler
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication
 
@@ -10,9 +11,28 @@ from tex import __version__
 from tex import config as cfgmod
 from tex.cli import parse_args
 from tex.ui import theme
+from tex.ui.icons import app_icon
 from tex.ui.main_window import MainWindow
 
 INSTANCE_NAME = "tex-app-instance"
+
+_QUIET_MESSAGES = (
+    "Failed to register with host portal",
+    "Paint device returned engine == 0",
+    "Painter not active",
+)
+
+
+def _qt_message_handler(mode, context, message) -> None:
+    for quiet in _QUIET_MESSAGES:
+        if quiet in message:
+            return
+    print(message, file=sys.stderr)
+
+
+def _install_quiet_logging() -> None:
+    QLoggingCategory.setFilterRules("qt.qpa.services.warning=false")
+    qInstallMessageHandler(_qt_message_handler)
 
 
 def _forward_to_instance(args) -> bool:
@@ -29,12 +49,13 @@ def _forward_to_instance(args) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    _install_quiet_logging()
 
     app = QApplication(["tex"])
     app.setApplicationName("Tex")
     app.setOrganizationName("Tex")
     app.setApplicationVersion(__version__)
-    app.setDesktopFileName("tex")
+    app.setWindowIcon(app_icon())
 
     if _forward_to_instance(args):
         return 0

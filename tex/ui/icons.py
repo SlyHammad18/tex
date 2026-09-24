@@ -24,6 +24,9 @@ def render_icon(name: str, size: int = 32, color: str = "#E6EAF0") -> QIcon:
         f'viewBox="0 0 24 24">{ICONS[name].format(c=color)}</svg>'
     )
     renderer = QSvgRenderer(QByteArray(svg.encode("utf-8")))
+    icon = QIcon()
+    if not renderer.isValid() or size <= 0:
+        return icon
     img = QImage(size, size, QImage.Format.Format_ARGB32)
     img.fill(Qt.GlobalColor.transparent)
     painter = QPainter(img)
@@ -39,3 +42,27 @@ def pil_to_pixmap(img: Image.Image) -> QPixmap:
     data = img.tobytes()
     qimg = QImage(data, img.width, img.height, img.width * 3, QImage.Format.Format_RGB888)
     return QPixmap.fromImage(qimg.copy())
+
+
+APP_ICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">'
+    '<rect x="8" y="8" width="112" height="112" rx="26" fill="#101318"/>'
+    '<rect x="8.5" y="8.5" width="111" height="111" rx="25.5" fill="none" stroke="#2A313D" stroke-width="1.5"/>'
+    '<rect x="34" y="34" width="60" height="14" rx="4" fill="#4CC2FF"/>'
+    '<rect x="57" y="34" width="14" height="60" rx="4" fill="#4CC2FF"/>'
+    '<rect x="34" y="86" width="24" height="8" rx="4" fill="#2A313D"/>'
+    '<rect x="70" y="86" width="24" height="8" rx="4" fill="#2A313D"/>'
+    '</svg>'
+)
+
+
+def app_icon() -> QIcon:
+    renderer = QSvgRenderer(QByteArray(APP_ICON_SVG.encode("utf-8")))
+    if not renderer.isValid():
+        return QIcon()
+    img = QImage(128, 128, QImage.Format.Format_ARGB32)
+    img.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(img)
+    renderer.render(painter, QRectF(0, 0, 128, 128))
+    painter.end()
+    return QIcon(QPixmap.fromImage(img))

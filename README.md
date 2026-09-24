@@ -45,6 +45,12 @@ Install Tex:
 pip install .
 # with OS keyring support for API keys:
 pip install .[keyring]
+
+# optional: app-grid entry + icon (lets the portal associate Tex properly)
+mkdir -p ~/.local/share/applications ~/.local/share/icons/hicolor/scalable/apps
+cp data/tex.desktop ~/.local/share/applications/
+cp data/icons/hicolor/scalable/apps/tex.svg ~/.local/share/icons/hicolor/scalable/apps/
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
 ```
 
 Run with `tex` or from your app grid.

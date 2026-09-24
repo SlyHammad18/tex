@@ -53,10 +53,18 @@ class ExtractionController(QObject):
         self._pool = QThreadPool.globalInstance()
         self._cancelled = False
         self._pending = 0
+        self._jobs = set()
+
+    def _track(self, job: QRunnable, *done_signals) -> None:
+        job.setAutoDelete(False)
+        self._jobs.add(job)
+        for sig in done_signals:
+            sig.connect(lambda *_, j=job: self._jobs.discard(j))
 
     def list_models(self, engine: OcrEngine):
         job = ModelsJob(engine)
         name = engine.name
+        self._track(job, job.signals.models, job.signals.fail)
         job.signals.models.connect(lambda models, n=name: self.models_ready.emit(n, models))
         job.signals.fail.connect(lambda err, n=name: self.models_failed.emit(n, err))
         self._pool.start(job)
@@ -66,6 +74,7 @@ class ExtractionController(QObject):
         self._pending = len(model_ids)
         for mid in model_ids:
             job = ExtractJob(engine, image, mid, prompt)
+            self._track(job, job.signals.done)
             job.signals.done.connect(self._on_done)
             self._pool.start(job)
 

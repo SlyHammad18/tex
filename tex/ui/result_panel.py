@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as _dt
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -149,6 +149,7 @@ class ResultPanel(QWidget):
         self._image = capture.image
         self._history_id = history_id
         self._set_preview()
+        QTimer.singleShot(0, self._rescale_preview)
         self.text_edit.clear()
         self.last_engine = ""
         self.last_model_label = ""
@@ -156,10 +157,11 @@ class ResultPanel(QWidget):
         self._set_running(False)
         default_engine = config.load_config()["general"].get("engine", "tesseract")
         idx = self.engine_combo.findData(default_engine)
+        self.engine_combo.blockSignals(True)
         if idx >= 0:
             self.engine_combo.setCurrentIndex(idx)
-        else:
-            self._on_engine_changed()
+        self.engine_combo.blockSignals(False)
+        self._on_engine_changed()
 
     def show_history(self, entry: dict, image) -> None:
         mode = entry.get("mode") or "select"
@@ -188,9 +190,11 @@ class ResultPanel(QWidget):
         self._rescale_preview()
 
     def _rescale_preview(self) -> None:
-        if self._base_pix is None:
+        if self._base_pix is None or self._base_pix.isNull():
             return
         size = self.preview.size()
+        if size.width() <= 1 or size.height() <= 1:
+            return
         scaled = self._base_pix.scaled(
             int(size.width() * 0.96),
             int(size.height() * 0.96),

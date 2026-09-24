@@ -145,16 +145,17 @@ class CaptureOverlay(QWidget):
         p = QPainter(self)
         dpr = self._dpr
 
-        p.save()
-        p.scale(1 / dpr, 1 / dpr)
-        p.translate(-self._origin_px)
-        p.drawPixmap(0, 0, self._pix)
-        p.restore()
+        if not self._pix.isNull():
+            p.save()
+            p.scale(1 / dpr, 1 / dpr)
+            p.translate(-self._origin_px)
+            p.drawPixmap(0, 0, self._pix)
+            p.restore()
 
         p.fillRect(self.rect(), QColor(0, 0, 0, 115))
 
         rect = self._current_rect()
-        if rect is not None:
+        if rect is not None and not self._pix.isNull():
             local = self._px_to_local(rect)
             src = QRectF(rect.x, rect.y, rect.w, rect.h)
             p.drawPixmap(local, self._pix, src)
