@@ -56,7 +56,7 @@ class GeminiEngine(OcrEngine):
             if any(x in low for x in _EXCLUDE):
                 continue
             out.append(ModelInfo(mid, "gemini", short_model(mid)))
-        return sorted(out, key=lambda m: m.id.lower())
+        return sorted(out, key=lambda m: (0 if "flash" in m.id.lower() else 1, m.id.lower()))
 
     def extract(self, image, model_id: str, prompt: str) -> OcrResult:
         key = self._key()

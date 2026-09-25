@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 
-from PySide6.QtCore import QObject, QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QObject, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor, QGuiApplication, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMainWindow,
+    QMessageBox,
+    QPushButton,
     QStackedWidget,
     QToolButton,
     QVBoxLayout,
@@ -88,7 +90,6 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.result_panel)
         self.stack.setCurrentIndex(0)
 
-        self.statusBar().showMessage("Ready")
         self._reload_history()
 
         if getattr(args, "mode", None):
@@ -107,11 +108,13 @@ class MainWindow(QMainWindow):
         logo = QLabel("Tex")
         logo.setObjectName("logo")
         header.addWidget(logo)
-        subtitle = QLabel("Screenshot + text extraction")
-        subtitle.setObjectName("muted")
-        header.addSpacing(6)
-        header.addWidget(subtitle)
         header.addStretch()
+        shot_btn = QPushButton("Take screenshot")
+        shot_btn.setIcon(render_icon("select", 16, theme.ACCENT))
+        shot_btn.setToolTip("Capture a screen region (tex --select)")
+        shot_btn.clicked.connect(lambda: self._start_capture(CaptureMode.SELECT))
+        header.addWidget(shot_btn)
+        header.addSpacing(8)
         gear = QToolButton()
         gear.setObjectName("iconBtn")
         gear.setIcon(render_icon("gear", 24))
@@ -120,32 +123,32 @@ class MainWindow(QMainWindow):
         header.addWidget(gear)
         lay.addLayout(header)
 
-        cards = QHBoxLayout()
-        cards.addStretch()
-        for mode, icon in (
-            (CaptureMode.SELECT, "select"),
-            (CaptureMode.WINDOW, "window"),
-            (CaptureMode.SCREEN, "screen"),
-        ):
-            btn = QToolButton()
-            btn.setObjectName("modeCard")
-            btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-            btn.setIcon(render_icon(icon, 64, theme.ACCENT))
-            btn.setIconSize(QSize(40, 40))
-            btn.setText(mode.label)
-            btn.clicked.connect(lambda _, m=mode: self._start_capture(m))
-            cards.addWidget(btn)
-        cards.addStretch()
-        lay.addLayout(cards)
-
+        recent_row = QHBoxLayout()
         recent_label = QLabel("Recent")
         recent_label.setObjectName("muted")
-        lay.addWidget(recent_label)
+        recent_row.addWidget(recent_label)
+        recent_row.addStretch()
+        clear_btn = QPushButton("Clear history")
+        clear_btn.clicked.connect(self._clear_history)
+        recent_row.addWidget(clear_btn)
+        lay.addLayout(recent_row)
         self.history_list = QListWidget()
         self.history_list.itemActivated.connect(self._open_history)
         self.history_list.itemClicked.connect(self._open_history)
         lay.addWidget(self.history_list, 1)
         return page
+
+    def _clear_history(self) -> None:
+        ret = QMessageBox.question(
+            self,
+            "Clear history",
+            "Delete all captures and their results?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ret == QMessageBox.StandardButton.Yes:
+            get_store().clear()
+            self._reload_history()
 
     def _reload_history(self) -> None:
         self.history_list.clear()
@@ -195,7 +198,6 @@ class MainWindow(QMainWindow):
     def _start_capture(self, mode: CaptureMode) -> None:
         dpr = QGuiApplication.primaryScreen().devicePixelRatio()
         self.hide()
-        self.statusBar().showMessage("Capturing…")
         QTimer.singleShot(180, lambda: self.capture_controller.start(mode, dpr))
 
     def _on_captured(self, res: CaptureResult) -> None:
@@ -257,7 +259,6 @@ class MainWindow(QMainWindow):
         self.show()
         self.raise_()
         self.activateWindow()
-        self.statusBar().showMessage(f"{mode.label} captured — choose engine and Extract")
         if self._pending_auto:
             self.result_panel.run_auto(self._pending_auto)
 
@@ -266,7 +267,6 @@ class MainWindow(QMainWindow):
 
     def _on_capture_failed(self, msg: str) -> None:
         self.show()
-        self.statusBar().showMessage("Capture failed")
         show_toast(self, msg, "error")
 
     def _go_home(self) -> None:
@@ -274,7 +274,6 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(0)
         self.show()
         self.raise_()
-        self.statusBar().showMessage("Ready")
 
     def _recrop(self) -> None:
         image = self.result_panel._image
@@ -345,7 +344,6 @@ class MainWindow(QMainWindow):
     def _open_settings(self) -> None:
         dlg = SettingsDialog(self)
         if dlg.exec():
-            self.statusBar().showMessage("Settings saved")
             self._reload_history()
 
     def handle_remote(self, payload: dict) -> None:

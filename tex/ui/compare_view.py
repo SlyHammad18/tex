@@ -47,14 +47,14 @@ class _ModelPage(QWidget):
 
     def set_result(self, result: OcrResult) -> None:
         if result.error:
-            self.status.setText(f"✗ {result.error[:140]}")
+            self.status.setText(f"Error: {result.error[:140]}")
             self.status.setStyleSheet(f"color: {theme.ERR}; font-size: 9pt;")
             self.text.setPlainText(result.error)
         else:
             secs = result.latency_ms / 1000
             tokens = result.usage.get("total_tokens") or result.usage.get("completion_tokens") or ""
             extra = f" · {tokens} tok" if tokens != "" else ""
-            self.status.setText(f"✓ {secs:.1f}s{extra}")
+            self.status.setText(f"{secs:.1f}s{extra}")
             self.status.setStyleSheet(f"color: {theme.OK}; font-size: 9pt;")
             self.text.setPlainText(result.text)
 
@@ -100,9 +100,9 @@ class CompareView(QWidget):
         idx = self.tabs.indexOf(page)
         name = short_model(result.model)
         if result.error:
-            self.tabs.setTabText(idx, f"✗ {name}")
+            self.tabs.setTabText(idx, f"{name} (error)")
         else:
-            self.tabs.setTabText(idx, f"✓ {name} · {result.latency_ms / 1000:.1f}s")
+            self.tabs.setTabText(idx, f"{name} · {result.latency_ms / 1000:.1f}s")
         self._rebuild_all()
 
     def _rebuild_all(self) -> None:

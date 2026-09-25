@@ -4,10 +4,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QDialogButtonBox,
     QFormLayout,
     QHBoxLayout,
-    QLabel,
     QLineEdit,
     QPushButton,
     QVBoxLayout,
@@ -44,12 +42,8 @@ class SettingsDialog(QDialog):
                     QLineEdit.EchoMode.Normal if on else QLineEdit.EchoMode.Password
                 )
             )
-            link = QLabel(f"<a href='{meta['key_url']}'>get key</a>")
-            link.setOpenExternalLinks(True)
-            link.setStyleSheet(f"color: {theme.MUTED}; background: transparent;")
             row.addWidget(edit, 1)
             row.addWidget(toggle)
-            row.addWidget(link)
             wrap = QWidget()
             wrap.setLayout(row)
             form.addRow(meta["label"], wrap)
@@ -78,12 +72,16 @@ class SettingsDialog(QDialog):
         lay.addLayout(form)
         self._orig_keys = {pid: e.text() for pid, e in self.key_edits.items()}
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self._save)
-        buttons.rejected.connect(self.reject)
-        lay.addWidget(buttons)
+        row = QHBoxLayout()
+        row.addStretch()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        save_btn = QPushButton("Save")
+        save_btn.setProperty("variant", "primary")
+        save_btn.clicked.connect(self._save)
+        row.addWidget(cancel_btn)
+        row.addWidget(save_btn)
+        lay.addLayout(row)
 
     def _save(self) -> None:
         for pid, edit in self.key_edits.items():

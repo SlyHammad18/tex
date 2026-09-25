@@ -50,6 +50,7 @@ class ResultPanel(QWidget):
         self._auto_pick = False
         self._auto_spec: dict | None = None
         self._cancelled = False
+        self._filling_models = False
         self.last_engine = ""
         self.last_model_label = ""
 
@@ -133,6 +134,9 @@ class ResultPanel(QWidget):
         lay.addLayout(tools)
 
         self.engine_combo.currentIndexChanged.connect(self._on_engine_changed)
+        self.engine_combo.activated.connect(self._persist_engine)
+        self.model_combo.activated.connect(self._persist_model)
+        self.model_list.itemChanged.connect(self._persist_compare_models)
         self.compare_check.toggled.connect(self._on_compare_toggled)
         self.custom_check.toggled.connect(self.prompt_edit.setVisible)
         self.extract_btn.clicked.connect(self._on_extract_clicked)
@@ -141,6 +145,43 @@ class ResultPanel(QWidget):
         self.controller.models_failed.connect(self._on_models_failed)
         self.controller.result_ready.connect(self._on_result)
         self.controller.all_done.connect(self._on_all_done)
+        self._apply_default_engine()
+
+    def _apply_default_engine(self) -> None:
+        name = config.load_config()["general"].get("engine", "tesseract")
+        idx = self.engine_combo.findData(name)
+        self.engine_combo.blockSignals(True)
+        if idx >= 0:
+            self.engine_combo.setCurrentIndex(idx)
+        self.engine_combo.blockSignals(False)
+        self._on_engine_changed()
+
+    def _persist_engine(self, *_):
+        name = self.engine_combo.currentData()
+        if not name:
+            return
+        cfg = config.load_config()
+        cfg["general"]["engine"] = name
+        config.save_config(cfg)
+
+    def _persist_model(self, *_):
+        mid = self.model_combo.currentData()
+        engine = self.engine_combo.currentData()
+        if not mid or not engine:
+            return
+        cfg = config.load_config()
+        cfg["providers"].setdefault(engine, {})["model"] = mid
+        config.save_config(cfg)
+
+    def _persist_compare_models(self, *_):
+        if self._filling_models:
+            return
+        engine = self.engine_combo.currentData()
+        if not engine:
+            return
+        cfg = config.load_config()
+        cfg["providers"].setdefault(engine, {})["models"] = self._checked_model_ids()
+        config.save_config(cfg)
 
     # ---------- capture / history ----------
 
@@ -155,13 +196,6 @@ class ResultPanel(QWidget):
         self.last_model_label = ""
         self._set_compare_view(None)
         self._set_running(False)
-        default_engine = config.load_config()["general"].get("engine", "tesseract")
-        idx = self.engine_combo.findData(default_engine)
-        self.engine_combo.blockSignals(True)
-        if idx >= 0:
-            self.engine_combo.setCurrentIndex(idx)
-        self.engine_combo.blockSignals(False)
-        self._on_engine_changed()
 
     def show_history(self, entry: dict, image) -> None:
         mode = entry.get("mode") or "select"
@@ -219,34 +253,43 @@ class ResultPanel(QWidget):
         self.controller.list_models(make_engine(name))
 
     def _fill_models(self, engine_name: str, models: list[ModelInfo]) -> None:
-        self.model_combo.clear()
-        self.model_list.clear()
-        preferred = config.load_config()["providers"].get(engine_name, {}).get("model", "")
-        for m in models:
-            self.model_combo.addItem(m.label or m.id, m.id)
-            item = QListWidgetItem(m.label or m.id)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(
-                Qt.CheckState.Checked if m.id == preferred else Qt.CheckState.Unchecked
+        self._filling_models = True
+        try:
+            self.model_combo.clear()
+            self.model_list.clear()
+            cfg = config.load_config()["providers"].get(engine_name, {})
+            preferred = cfg.get("model", "")
+            saved_models = cfg.get("models", [])
+            checked: set[str] = set(saved_models) if saved_models else (
+                {preferred} if preferred else set()
             )
-            item.setData(Qt.ItemDataRole.UserRole, m.id)
-            self.model_list.addItem(item)
-        if not models:
-            self.model_combo.addItem("(no vision models found)", "")
-        else:
-            sel = self.model_combo.findData(preferred)
-            self.model_combo.setCurrentIndex(sel if sel >= 0 else 0)
-        if self._auto_pick:
-            self._auto_pick = False
-            spec = self._auto_spec
-            self._auto_spec = None
-            if models and spec:
-                self.start_extraction(
-                    engine_name=spec.get("engine"),
-                    model_ids=[models[0].id],
-                    prompt=spec.get("prompt"),
-                    compare=bool(spec.get("compare")),
+            for m in models:
+                self.model_combo.addItem(m.label or m.id, m.id)
+                item = QListWidgetItem(m.label or m.id)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(
+                    Qt.CheckState.Checked if m.id in checked else Qt.CheckState.Unchecked
                 )
+                item.setData(Qt.ItemDataRole.UserRole, m.id)
+                self.model_list.addItem(item)
+            if not models:
+                self.model_combo.addItem("(no vision models found)", "")
+            else:
+                sel = self.model_combo.findData(preferred)
+                self.model_combo.setCurrentIndex(sel if sel >= 0 else 0)
+            if self._auto_pick:
+                self._auto_pick = False
+                spec = self._auto_spec
+                self._auto_spec = None
+                if models and spec:
+                    self.start_extraction(
+                        engine_name=spec.get("engine"),
+                        model_ids=[self.model_combo.currentData() or models[0].id],
+                        prompt=spec.get("prompt"),
+                        compare=bool(spec.get("compare")),
+                    )
+        finally:
+            self._filling_models = False
 
     def _on_models_ready(self, engine_name: str, models: list) -> None:
         if engine_name != self.engine_combo.currentData():

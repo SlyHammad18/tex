@@ -26,7 +26,10 @@ class ExtractJob(QRunnable):
             result = self.engine.extract(self.image, self.model_id, self.prompt)
         except Exception as e:
             result = OcrResult(model=self.model_id, provider=self.engine.name, error=str(e))
-        self.signals.done.emit(result)
+        try:
+            self.signals.done.emit(result)
+        except RuntimeError:
+            pass
 
 
 class ModelsJob(QRunnable):
@@ -37,9 +40,17 @@ class ModelsJob(QRunnable):
 
     def run(self):
         try:
-            self.signals.models.emit(self.engine.list_models())
+            models = self.engine.list_models()
         except Exception as e:
-            self.signals.fail.emit(str(e))
+            self._emit("fail", str(e))
+        else:
+            self._emit("models", models)
+
+    def _emit(self, name, value):
+        try:
+            getattr(self.signals, name).emit(value)
+        except RuntimeError:
+            pass
 
 
 class ExtractionController(QObject):

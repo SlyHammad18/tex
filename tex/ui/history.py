@@ -77,6 +77,14 @@ class HistoryStore:
                     pass
         self._save([e for e in entries if e["id"] != entry_id])
 
+    def clear(self) -> None:
+        for e in self._load():
+            try:
+                Path(e["image"]).unlink(missing_ok=True)
+            except Exception:
+                pass
+        self._save([])
+
 
 _store: HistoryStore | None = None
 
