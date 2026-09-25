@@ -106,6 +106,17 @@ image only to the provider you picked.
   not expose window geometry on GNOME/KDE.
 - On wlroots compositors with `grim`+`slurp`, selection uses slurp natively.
 
+## Packaging (.deb)
+
+Build a self-contained Debian package (bundles the app, PySide6, and
+pure-Python deps into `/opt/tex/lib`; uses system `python3`, Pillow, and
+requests from apt):
+
+```bash
+./scripts/build_deb.sh          # -> tex-capture_<version>-1_amd64.deb
+sudo apt install ./tex-capture_*_amd64.deb
+```
+
 ## Development
 
 ```bash
