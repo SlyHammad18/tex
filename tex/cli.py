@@ -29,11 +29,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument("--model", help="model id (provider) or tesseract language tag")
     p.add_argument("--prompt", help="custom extraction prompt")
-    p.add_argument(
-        "--compare",
-        metavar="M1,M2",
-        help="comma-separated model ids to compare (implies online engine)",
-    )
     p.add_argument("--clipboard", action="store_true", help="copy result text to clipboard")
     p.add_argument("--save", metavar="PATH", help="save result text to a .txt file")
     return p.parse_args(argv)

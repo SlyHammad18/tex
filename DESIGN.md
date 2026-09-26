@@ -10,7 +10,7 @@ Version: 0.1 (design) · Platform: Debian/Ubuntu-class Linux, X11 + Wayland · L
 Tex is a lightweight Linux screenshot utility in the spirit of Debian's GNOME Screenshot, with AI-powered text extraction built in. The user captures a **region (selection)**, a **window**, or the **full screen**, then extracts text from the capture in two ways:
 
 - **Offline** — Tesseract OCR, fully local, zero network.
-- **Online** — free-tier vision models from **Gemini**, **Groq**, **Cerebras**, and **OpenRouter**. Tex auto-lists every vision-capable model each API key has access to. The default behavior is plain text extraction ("just get the text"); users can supply a **custom prompt**, and can run **Compare mode** — the same image sent to N models, results shown in tabs side by side with per-model latency and copy buttons.
+- **Online** — free-tier vision models from **Gemini**, **Groq**, **Cerebras**, and **OpenRouter**. Tex auto-lists every vision-capable model each API key has access to. The default behavior is plain text extraction ("just get the text"); users can supply a **custom prompt**.
 
 Tex ships as a standalone window app plus CLI flags (`tex --select`, `--window`, `--screen`) for keyboard shortcuts and scripting.
 
@@ -25,11 +25,10 @@ Tex ships as a standalone window app plus CLI flags (`tex --select`, `--window`,
 | FR-3 | Offline OCR via Tesseract: language picker populated from `tesseract --list-langs`, Pillow preprocessing (grayscale → autocontrast → optional 2× upscale → binarize). |
 | FR-4 | Online OCR via Gemini / Groq / Cerebras / OpenRouter: one adapter per provider; on key entry, fetch the provider's model list and show **only vision-capable models** (filtered by `architecture.input_modalities` where the API exposes it, curated fallback list otherwise). |
 | FR-5 | Default extraction prompt is fixed ("extract only the text"); user can toggle a **custom prompt** field per run. |
-| FR-6 | **Compare mode**: multi-select N models → one request each → results in tabs (one per model plus an "All" tab); each tab shows the text, latency, token usage, and its own Copy button. Requests run in parallel. |
-| FR-7 | Result actions: copy to clipboard, save as `.txt`, re-run extraction, re-crop image. Image preview panel alongside the text result. |
+| FR-6 | Result actions: copy to clipboard, save as `.txt`, re-run extraction, re-crop image. Image preview panel alongside the text result. |
 | FR-8 | History: recent captures (thumbnail, timestamp, engine used, result) persisted under `~/.local/share/Tex/`; click to reopen and re-extract. |
 | FR-9 | Settings dialog: API key per provider, default engine + model, Tesseract language, history size, keyring integration with secure-file fallback. |
-| FR-10 | CLI: `tex [--select|--window|--screen] [--engine tesseract\|gemini\|groq\|cerebras\|openrouter] [--model ID] [--prompt TEXT] [--compare m1,m2] [--clipboard] [--save PATH]`; bare `tex` opens the main window. |
+| FR-10 | CLI: `tex [--select|--window|--screen] [--engine tesseract\|gemini\|groq\|cerebras\|openrouter] [--model ID] [--prompt TEXT] [--clipboard] [--save PATH]`; bare `tex` opens the main window. |
 | FR-11 | All errors surface as in-app toasts (missing key, network timeout, provider error, no text found); extraction is cancelable while running. |
 | FR-12 | Single instance: a second launch with flags routes its arguments to the running instance (QLocalServer) or exits cleanly. |
 
@@ -103,7 +102,6 @@ Tex/
 │       ├── main_window.py     # mode cards, history list, result hosting
 │       ├── capture_overlay.py # fullscreen translucent drag-select overlay
 │       ├── result_panel.py    # image preview + text view + actions
-│       ├── compare_view.py    # per-model tabs + "All" tab, latency chips
 │       ├── settings_dialog.py # keys, defaults, tesseract languages
 │       ├── history.py         # list widget + persistence
 │       ├── toasts.py          # transient notification widget
@@ -138,13 +136,13 @@ Mode picked (UI card or CLI flag)
 ### 6.2 Extraction flow
 
 ```
-OcrRequest { image, engine, model(s), prompt, compare }
+OcrRequest { image, engine, model, prompt }
   → workers.ExtractWorker (QThreadPool, one job per model)
       tesseract:     Pillow preprocess → pytesseract.image_to_string(lang)
       gemini:        POST v1beta/models/{id}:generateContent  (inline_data, base64)
       openai_compat: POST {base_url}/chat/completions         (image_url = data:image/png;base64,…)
   → emits finished(model, OcrResult { text, latency_ms, usage, error }) per model
-  → UI: single run → ResultPanel · compare → CompareView tabs fill in as results land
+  → UI: single run → ResultPanel text view
 ```
 
 ### 6.3 Default prompt (`constants.py`)
@@ -195,15 +193,11 @@ OcrRequest { image, engine, model(s), prompt, compare }
 After a capture the window swaps to the **Result view**:
 
 - **Left:** scaled image preview.
-- **Right:** engine bar — `Tesseract ▾ | provider ▾ | model ▾ | ☐ Custom prompt | ☐ Compare | [Extract]` — then the text panel, then a toolbar: Copy · Save .txt · Re-crop · Back.
+- **Right:** engine bar — `Tesseract ▾ | provider ▾ | model ▾ | ☐ Custom prompt | [Extract]` — then the text panel, then a toolbar: Copy · Save .txt · Re-crop · Back.
 
 ### 7.4 Selection overlay
 
 Fullscreen borderless translucent Qt window: crosshair cursor, dimmed backdrop, rubber-band rectangle with a 2 px `accent` border and 8 corner handles, live `W × H` tooltip, **Esc** cancels, mouse release confirms.
-
-### 7.5 Compare view
-
-`QTabWidget` — one tab per model (tab title = short model name, spinner while pending, latency chip like `1.4s · 212 tok` in the tab corner) plus an **All** tab that concatenates labeled results. A Copy button inside every tab. Requests run in parallel; tabs fill in as results arrive.
 
 ---
 
@@ -225,9 +219,9 @@ Acceptance: screenshot → text in a worker thread; language dropdown from `--li
 Files: `ocr/openai_compat.py`, `ocr/gemini.py`, `ocr/__init__.py` (registry + fallback vision lists).
 Acceptance: with a real free key per provider — vision-only model list populates; default extraction returns clean text; wrong key / timeout → toast with the provider's error; mocked tests cover model filtering and request shapes.
 
-### T5 — Result UI + Compare mode
-Files: `ui/result_panel.py`, `ui/compare_view.py`, `ui/toasts.py`.
-Acceptance: extract / copy / save / re-crop / re-run; custom-prompt toggle; compare with 3 models → parallel requests, tabs fill live, per-tab latency + Copy, All tab correct.
+### T5 — Result UI
+Files: `ui/result_panel.py`, `ui/toasts.py`.
+Acceptance: extract / copy / save / re-crop / re-run; custom-prompt toggle.
 
 ### T6 — Settings, history, polish
 Files: `ui/settings_dialog.py`, `ui/history.py`, single-instance logic in `app.py`, CLI flags end-to-end.
@@ -243,7 +237,7 @@ Acceptance: `pip install .` + desktop entry launch cleanly; pytest green; README
 
 1. **X11 session** — all three modes; window titles correct; multi-monitor grab spans correctly.
 2. **Wayland session (GNOME)** — portal prompt appears (once, then remembered); interactive selection works; window-mode crop fallback documented.
-3. **OCR matrix** — Tesseract with 2 languages; one real model per provider (Gemini flash, Groq llama-4-scout, Cerebras llama-4, an OpenRouter `:free` vision model); compare mode with 3 models in parallel.
+3. **OCR matrix** — Tesseract with 2 languages; one real model per provider (Gemini flash, Groq llama-4-scout, Cerebras llama-4, an OpenRouter `:free` vision model).
 4. **Failure paths** — revoked key, airplane-mode online attempt, cancel mid-extraction, empty (solid-color) image → graceful toasts everywhere.
 5. **CLI** — every flag combination from FR-10; single-instance behavior.
 6. **Security** — `stat -c %a` on the fallback keys file = `600`; keys absent from logs.

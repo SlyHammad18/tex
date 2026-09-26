@@ -132,10 +132,35 @@ class MainWindow(QMainWindow):
         clear_btn.clicked.connect(self._clear_history)
         recent_row.addWidget(clear_btn)
         lay.addLayout(recent_row)
+
         self.history_list = QListWidget()
         self.history_list.itemActivated.connect(self._open_history)
         self.history_list.itemClicked.connect(self._open_history)
         lay.addWidget(self.history_list, 1)
+
+        self.empty_state = QWidget()
+        es_lay = QVBoxLayout(self.empty_state)
+        es_lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        es_icon = QLabel("○")
+        es_icon.setObjectName("emptyIcon")
+        es_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        es_title = QLabel("No captures yet")
+        es_title.setObjectName("emptyTitle")
+        es_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        es_sub = QLabel("Take a screenshot to get started")
+        es_sub.setObjectName("emptySub")
+        es_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        es_btn = QPushButton("  ◉ Take screenshot  ")
+        es_btn.setProperty("variant", "primary")
+        es_btn.clicked.connect(lambda: self._start_capture(CaptureMode.SELECT))
+        es_btn.setFixedHeight(36)
+        es_lay.addWidget(es_icon)
+        es_lay.addWidget(es_title)
+        es_lay.addWidget(es_sub)
+        es_lay.addSpacing(8)
+        es_lay.addWidget(es_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self.empty_state, 1)
+
         return page
 
     def _clear_history(self) -> None:
@@ -153,7 +178,8 @@ class MainWindow(QMainWindow):
     def _reload_history(self) -> None:
         self.history_list.clear()
         store = get_store()
-        for e in store.entries():
+        entries = store.entries()
+        for e in entries:
             item = QListWidgetItem()
             try:
                 pix = QPixmap(e["image"])
@@ -179,6 +205,10 @@ class MainWindow(QMainWindow):
             item.setText("  ·  ".join(parts))
             item.setData(Qt.ItemDataRole.UserRole, e)
             self.history_list.addItem(item)
+
+        has_items = len(entries) > 0
+        self.history_list.setVisible(has_items)
+        self.empty_state.setVisible(not has_items)
 
     def _open_history(self, item: QListWidgetItem) -> None:
         entry = item.data(Qt.ItemDataRole.UserRole)
@@ -350,13 +380,8 @@ class MainWindow(QMainWindow):
         mode = payload.get("mode")
         self._pending_auto = {
             "engine": payload.get("engine"),
-            "models": (
-                [m.strip() for m in payload["compare"].split(",") if m.strip()]
-                if payload.get("compare")
-                else ([payload["model"]] if payload.get("model") else None)
-            ),
+            "models": [payload["model"]] if payload.get("model") else None,
             "prompt": payload.get("prompt"),
-            "compare": bool(payload.get("compare") and "," in payload["compare"]),
             "clipboard": bool(payload.get("clipboard")),
             "save": payload.get("save"),
         }
@@ -373,15 +398,10 @@ class MainWindow(QMainWindow):
     def _spec_from_args(args) -> dict | None:
         if args is None:
             return None
-        compare_models = None
-        if getattr(args, "compare", None):
-            compare_models = [m.strip() for m in args.compare.split(",") if m.strip()]
-        models = compare_models or ([args.model] if getattr(args, "model", None) else None)
         return {
             "engine": getattr(args, "engine", None),
-            "models": models,
+            "models": [args.model] if getattr(args, "model", None) else None,
             "prompt": getattr(args, "prompt", None),
-            "compare": bool(compare_models and len(compare_models) > 1),
             "clipboard": bool(getattr(args, "clipboard", False)),
             "save": getattr(args, "save", None),
         }

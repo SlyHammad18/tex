@@ -6,7 +6,9 @@ CARD = "#1D232C"
 BORDER = "#2A313D"
 TEXT = "#E6EAF0"
 MUTED = "#8B93A1"
-ACCENT = "#4CC2FF"
+ACCENT = "#F5A623"
+ACCENT_HOVER = "#FFB84D"
+ACCENT_DARK = "#1A1207"
 OK = "#7EE787"
 ERR = "#FF6B6B"
 
@@ -25,6 +27,9 @@ QLabel#logo {{ font-size: 16pt; font-weight: 700; color: {ACCENT}; }}
 QLabel#muted, QLabel#hint {{ color: {MUTED}; }}
 QLabel#hint {{ font-size: 9pt; }}
 QLabel#imagePreview {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; }}
+QLabel#emptyIcon {{ font-size: 48pt; color: {MUTED}; }}
+QLabel#emptyTitle {{ font-size: 14pt; font-weight: 600; color: {TEXT}; }}
+QLabel#emptySub {{ font-size: 10pt; color: {MUTED}; }}
 
 QPushButton {{
     background-color: {CARD};
@@ -36,15 +41,17 @@ QPushButton:hover {{ border-color: {ACCENT}; }}
 QPushButton:pressed {{ background-color: #232A35; }}
 QPushButton:disabled {{ color: #566072; border-color: {BORDER}; }}
 QPushButton[variant="primary"] {{
-    background-color: {ACCENT}; color: #0B1016; font-weight: 600; border: none;
+    background-color: {ACCENT}; color: {ACCENT_DARK}; font-weight: 600; border: none;
 }}
-QPushButton[variant="primary"]:hover {{ background-color: #6FD0FF; }}
+QPushButton[variant="primary"]:hover {{ background-color: {ACCENT_HOVER}; }}
+QPushButton[variant="primary"]:pressed {{ background-color: #D48E1A; }}
 QPushButton[variant="primary"]:disabled {{ background-color: #2A3B49; color: #7C93A3; }}
 
 QToolButton {{
     background: {CARD}; border: 1px solid {BORDER}; border-radius: 10px; padding: 10px;
 }}
 QToolButton:hover {{ border-color: {ACCENT}; }}
+QToolButton:pressed {{ background-color: #232A35; }}
 QToolButton#modeCard {{ min-width: 128px; min-height: 92px; font-weight: 600; }}
 QToolButton#iconBtn {{ border: none; background: transparent; border-radius: 6px; padding: 6px; }}
 QToolButton#iconBtn:hover {{ background: {CARD}; }}
@@ -84,28 +91,42 @@ QListWidget::item {{ border-radius: 6px; padding: 6px; margin: 2px; }}
 QListWidget::item:hover {{ background: #1D2634; }}
 QListWidget::item:selected {{ background: #223041; color: {TEXT}; }}
 
-QTabWidget::pane {{ border: 1px solid {BORDER}; border-radius: 8px; top: -1px; }}
-QTabBar::tab {{
-    background: transparent; color: {MUTED}; padding: 7px 14px;
-    border-bottom: 2px solid transparent;
-}}
-QTabBar::tab:selected {{ color: {TEXT}; border-bottom: 2px solid {ACCENT}; }}
-QTabBar::tab:hover {{ color: {TEXT}; }}
-
 QStatusBar {{ background: #12161C; border-top: 1px solid {BORDER}; color: {MUTED}; }}
 
 QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px; }}
 QScrollBar::handle:vertical {{ background: {BORDER}; border-radius: 5px; min-height: 24px; }}
 QScrollBar::handle:vertical:hover {{ background: #3A4350; }}
 QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 2px; }}
-QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 5px; min-width: 24px; }}
+QScrollBar:horizontal {{ background: {BORDER}; border-radius: 5px; min-width: 24px; }}
 QScrollBar::handle:horizontal:hover {{ background: #3A4350; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
 
 QToolTip {{ background: {CARD}; color: {TEXT}; border: 1px solid {BORDER}; padding: 4px 8px; }}
 QDialogButtonBox QPushButton {{ min-width: 84px; }}
 
-QFrame#toast {{ background: {CARD}; border: 1px solid {BORDER}; border-radius: 10px; }}
-QFrame#toastSuccess {{ background: #16281C; border: 1px solid {OK}; border-radius: 10px; }}
-QFrame#toastError {{ background: #2A1719; border: 1px solid {ERR}; border-radius: 10px; }}
+QFrame#toast {{
+    background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px;
+    border-left: 3px solid {MUTED};
+}}
+QFrame#toastSuccess {{
+    background: #16281C; border: 1px solid {OK}; border-radius: 8px;
+    border-left: 3px solid {OK};
+}}
+QFrame#toastError {{
+    background: #2A1719; border: 1px solid {ERR}; border-radius: 8px;
+    border-left: 3px solid {ERR};
+}}
+QLabel#toastText {{ background: transparent; }}
+QPushButton#toastClose {{
+    background: transparent; border: none; color: {MUTED}; font-size: 12pt;
+    padding: 2px 6px; border-radius: 4px;
+}}
+QPushButton#toastClose:hover {{ color: {TEXT}; background: {CARD}; }}
+
+QFrame#settingsSection {{
+    background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px;
+    padding: 12px;
+}}
+QLabel#settingsSectionTitle {{ font-size: 10pt; font-weight: 600; color: {ACCENT};
+    text-transform: uppercase; letter-spacing: 0.5px; background: transparent; }}
 """

@@ -3,7 +3,7 @@
 Screenshot capture with AI text extraction for Linux. Capture a selection, a
 window, or the full screen, then extract text **offline** with Tesseract or
 **online** with free-tier vision models from **Google Gemini**, **Groq**,
-**Cerebras**, and **OpenRouter** — including a multi-model **compare mode**.
+**Cerebras**, and **OpenRouter**.
 
 Dark, minimal UI built with Qt (PySide6). Works on X11 and Wayland.
 
@@ -16,8 +16,6 @@ Dark, minimal UI built with Qt (PySide6). Works on X11 and Wayland.
 - **Online OCR** — per-provider model lists filtered to vision-capable models;
   plain "extract the text" by default.
 - **Custom prompt** — toggle a prompt field to ask anything of the image.
-- **Compare mode** — send one capture to several models in parallel; results
-  land in tabs with latency/token chips and per-tab copy, plus an "All" tab.
 - **History** — recent captures with thumbnails; click to reopen and re-extract.
 - **CLI** — `tex --select|--window|--screen` with optional headless-style
   auto-extraction for keybinds and scripts.
@@ -82,7 +80,7 @@ tex --screen                 # capture the full screen
 tex --select --engine groq --model meta-llama/llama-4-scout-17b-16e-instruct \
     --clipboard              # capture, extract, copy, exit
 tex --select --engine tesseract --model tesseract:eng --save out.txt
-tex --screen --engine openrouter --compare "meta-llama/llama-4-scout:free,google/gemini-2.0-flash-exp:free" --clipboard
+tex --screen --engine openrouter --model meta-llama/llama-4-scout:free --clipboard
 ```
 
 Model ids: pick them from the model dropdown after entering a key, or pass

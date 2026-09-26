@@ -160,9 +160,21 @@ class CaptureOverlay(QWidget):
             src = QRectF(rect.x, rect.y, rect.w, rect.h)
             p.drawPixmap(local, self._pix, src)
 
+            # Accent border
             pen = QPen(QColor(theme.ACCENT), 2)
             p.setPen(pen)
             p.drawRect(local)
+
+            # Subtle glow around the selection
+            glow_color = QColor(theme.ACCENT)
+            glow_color.setAlpha(40)
+            glow_pen = QPen(glow_color, 6)
+            p.setPen(glow_pen)
+            p.drawRect(local.adjusted(-3, -3, 3, 3))
+            p.setPen(QPen(QColor(theme.ACCENT), 2))
+            p.drawRect(local)
+
+            # Resize handles
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(QColor(theme.ACCENT))
             hs = 4
@@ -190,11 +202,18 @@ class CaptureOverlay(QWidget):
 
     def _draw_chip(self, p: QPainter, top_left: QPointF, text: str, center: bool = False) -> None:
         fm = p.fontMetrics()
-        tw = fm.horizontalAdvance(text) + 20
-        th = fm.height() + 10
+        tw = fm.horizontalAdvance(text) + 24
+        th = fm.height() + 12
         x = top_left.x() - (tw / 2 if center else 0)
         y = top_left.y()
         bg = QRectF(x, y, tw, th)
+
+        # Subtle shadow
+        shadow = QRectF(x + 1, y + 1, tw, th)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(0, 0, 0, 80))
+        p.drawRoundedRect(shadow, 6, 6)
+
         p.setPen(QPen(QColor(theme.BORDER), 1))
         p.setBrush(QColor(23, 27, 34, 235))
         p.drawRoundedRect(bg, 6, 6)
