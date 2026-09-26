@@ -50,8 +50,9 @@ class CaptureController(QObject):
                 except CaptureCanceled:
                     self.canceled.emit()
                     return
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.failed.emit(str(e))
+                    return
             img, windows, origin = grab_raw()
             self.captured.emit(
                 CaptureResult(image=img, mode=mode, windows=windows, origin=origin, dpr=dpr)

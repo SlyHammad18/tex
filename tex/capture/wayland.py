@@ -90,6 +90,8 @@ async def _portal_screenshot(interactive: bool) -> str:
         code, results = await asyncio.wait_for(done, timeout=PORTAL_TIMEOUT)
         if code == 1:
             raise CaptureCanceled("screenshot canceled by user")
+        if code == 2:
+            raise CaptureCanceled("screenshot canceled by user")
         if code != 0:
             raise RuntimeError(f"portal screenshot failed (code {code})")
         uri = results.get("uri", {}).value if isinstance(results.get("uri"), Variant) else results.get("uri")
