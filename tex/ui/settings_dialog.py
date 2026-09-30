@@ -80,9 +80,9 @@ class SettingsDialog(QDialog):
         def_title.setObjectName("settingsSectionTitle")
         def_lay.addWidget(def_title)
 
-        def_form = QFormLayout()
-        def_form.setSpacing(10)
-        def_form.setContentsMargins(0, 8, 0, 0)
+        self._def_form = QFormLayout()
+        self._def_form.setSpacing(10)
+        self._def_form.setContentsMargins(0, 8, 0, 0)
 
         self.engine_combo = QComboBox()
         for eid, elabel in engine_items():
@@ -90,7 +90,7 @@ class SettingsDialog(QDialog):
         self.engine_combo.setCurrentIndex(
             max(0, self.engine_combo.findData(self.cfg["general"].get("engine", "tesseract")))
         )
-        def_form.addRow("Default engine", self.engine_combo)
+        self._def_form.addRow("Default engine", self.engine_combo)
 
         self.lang_combo = QComboBox()
         try:
@@ -102,9 +102,16 @@ class SettingsDialog(QDialog):
         idx = self.lang_combo.findData(f"tesseract:{cur}")
         if idx >= 0:
             self.lang_combo.setCurrentIndex(idx)
-        def_form.addRow("Tesseract language", self.lang_combo)
+        self._def_form.addRow("Tesseract language", self.lang_combo)
 
-        def_lay.addLayout(def_form)
+        self.model_combo = QComboBox()
+        self.model_combo.setMinimumWidth(200)
+        self._def_form.addRow("Default model", self.model_combo)
+
+        self.engine_combo.currentIndexChanged.connect(self._on_engine_changed)
+        self._on_engine_changed()
+
+        def_lay.addLayout(self._def_form)
         lay.addWidget(def_frame)
 
         lay.addStretch()
@@ -122,12 +129,40 @@ class SettingsDialog(QDialog):
         row.addWidget(save_btn)
         lay.addLayout(row)
 
+    def _on_engine_changed(self) -> None:
+        engine = self.engine_combo.currentData()
+        is_tesseract = engine == "tesseract"
+
+        self._def_form.setRowVisible(self.lang_combo, is_tesseract)
+        self._def_form.setRowVisible(self.model_combo, not is_tesseract)
+        if is_tesseract:
+            return
+
+        self.model_combo.clear()
+        try:
+            eng = make_engine(engine)
+            models = eng.list_models()
+            for m in models:
+                from tex.ocr.models import short_model
+                display = m.label or short_model(m.id)
+                self.model_combo.addItem(display, m.id)
+            saved = self.cfg["providers"].get(engine, {}).get("model", "")
+            idx = self.model_combo.findData(saved)
+            self.model_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        except Exception:
+            pass
+
     def _save(self) -> None:
         for pid, edit in self.key_edits.items():
             if edit.text() != self._orig_keys[pid]:
                 config.set_key(pid, edit.text())
-        self.cfg["general"]["engine"] = self.engine_combo.currentData()
-        if self.lang_combo.currentData():
-            self.cfg["tesseract"]["language"] = self.lang_combo.currentData().split(":", 1)[1]
+        engine = self.engine_combo.currentData()
+        self.cfg["general"]["engine"] = engine
+        if engine == "tesseract":
+            if self.lang_combo.currentData():
+                self.cfg["tesseract"]["language"] = self.lang_combo.currentData().split(":", 1)[1]
+        else:
+            if self.model_combo.currentData():
+                self.cfg["providers"].setdefault(engine, {})["model"] = self.model_combo.currentData()
         config.save_config(self.cfg)
         self.accept()

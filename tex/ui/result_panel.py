@@ -22,7 +22,7 @@ from tex import config
 from tex.capture.base import CaptureMode, CaptureResult
 from tex.constants import DEFAULT_PROMPT
 from tex.ocr import engine_items, make_engine
-from tex.ocr.models import ModelInfo, OcrResult
+from tex.ocr.models import ModelInfo, OcrResult, short_model
 from tex.ui.icons import pil_to_pixmap
 from tex.ui.toasts import show_toast
 
@@ -231,7 +231,8 @@ class ResultPanel(QWidget):
             cfg = config.load_config()["providers"].get(engine_name, {})
             preferred = cfg.get("model", "")
             for m in models:
-                self.model_combo.addItem(m.label or m.id, m.id)
+                display = m.label or short_model(m.id)
+                self.model_combo.addItem(display, m.id)
             if not models:
                 self.model_combo.addItem("(no vision models found)", "")
             else:
