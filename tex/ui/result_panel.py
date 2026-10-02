@@ -106,14 +106,17 @@ class ResultPanel(QWidget):
         tools = QHBoxLayout()
         copy_btn = QPushButton("Copy")
         save_btn = QPushButton("Save .txt")
+        save_img_btn = QPushButton("Save Image")
         recrop_btn = QPushButton("Re-crop")
         back_btn = QPushButton("Back")
         copy_btn.clicked.connect(self.copy_text)
         save_btn.clicked.connect(self.save_txt)
+        save_img_btn.clicked.connect(self.save_image)
         recrop_btn.clicked.connect(self.recropRequested.emit)
         back_btn.clicked.connect(self.backRequested.emit)
         tools.addWidget(copy_btn)
         tools.addWidget(save_btn)
+        tools.addWidget(save_img_btn)
         tools.addWidget(recrop_btn)
         tools.addStretch()
         tools.addWidget(back_btn)
@@ -391,4 +394,27 @@ class ResultPanel(QWidget):
             return
         with open(path, "w", encoding="utf-8") as f:
             f.write(text)
+        show_toast(self.window(), f"Saved {path}", "success")
+
+
+    def save_image(self) -> None:
+        self._save_image(self._image)
+
+    def _save_image(self, img) -> None:
+        if img is None:
+            show_toast(self.window(), "No image to save")
+            return
+        default = _dt.datetime.now().strftime("tex-%Y%m%d-%H%M%S.png")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save image", default, "PNG images (*.png);;JPEG images (*.jpg *.jpeg)"
+        )
+        if not path:
+            return
+        try:
+            if path.lower().endswith((".jpg", ".jpeg")) and img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+            img.save(path)
+        except Exception as e:
+            show_toast(self.window(), f"Save failed: {e}", "error")
+            return
         show_toast(self.window(), f"Saved {path}", "success")

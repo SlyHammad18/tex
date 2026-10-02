@@ -2,7 +2,5 @@
 - Add Translate
 - Fix Notification
 - Allow to Select Numbers Separately
-- Automatic Copy to Clipboard
 - Question Mode (Solve the Questions and Give Answers)
 - Keyboard Shortcuts
-- Add a Option to Save Image
