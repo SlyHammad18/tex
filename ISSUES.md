@@ -1,6 +1,5 @@
 - Add QR / Barcode Scan
 - Add Translate
 - Fix Notification
-- Allow to Select Numbers Separately
 - Question Mode (Solve the Questions and Give Answers)
 - Keyboard Shortcuts

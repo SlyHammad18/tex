@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 from abc import ABC, abstractmethod
 
 from PIL import Image
@@ -33,6 +34,28 @@ def strip_fences(text: str) -> str:
             inner = t[first_nl + 1 : t.rstrip().rfind("```")]
             return inner.strip()
     return t
+
+
+GROUP_PROMPT = (
+    "You are given text extracted from a screenshot. List every meaningful number or "
+    "number-like value in it, grouped by what it is (IP address, phone number, date, time, "
+    "price/amount, percentage, ID/code, version, measurement, coordinate, etc.). "
+    'Respond with ONLY a JSON array of objects like {"label": "IP", "value": "192.168.1.1"}. '
+    "Use short labels and keep each value exactly as it appears in the text. "
+    "No markdown fences, no commentary. If nothing qualifies, respond with [].\n\nText:\n"
+)
+
+
+def parse_number_groups(raw: str) -> list:
+    raw = (raw or "").strip()
+    start, end = raw.find("["), raw.rfind("]")
+    if start == -1 or end <= start:
+        return []
+    try:
+        data = json.loads(raw[start : end + 1])
+    except Exception:
+        return []
+    return data if isinstance(data, list) else []
 
 
 class OcrEngine(ABC):

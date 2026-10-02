@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as _dt
+import re
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont
@@ -9,10 +10,12 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QSplitter,
     QVBoxLayout,
     QWidget,
@@ -104,6 +107,21 @@ class ResultPanel(QWidget):
         split.setSizes([380, 460])
         lay.addWidget(split, 1)
 
+        self.pills_scroll = QScrollArea()
+        self.pills_scroll.setWidgetResizable(True)
+        self.pills_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.pills_scroll.setFixedHeight(44)
+        self.pills_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.pills_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        pills_container = QWidget()
+        self.pills_lay = QHBoxLayout(pills_container)
+        self.pills_lay.setContentsMargins(0, 2, 0, 2)
+        self.pills_lay.setSpacing(6)
+        self.pills_lay.addStretch()
+        self.pills_scroll.setWidget(pills_container)
+        self.pills_scroll.setVisible(False)
+        lay.addWidget(self.pills_scroll)
+
         tools = QHBoxLayout()
         copy_btn = QPushButton("Copy")
         save_btn = QPushButton("Save .txt")
@@ -133,6 +151,7 @@ class ResultPanel(QWidget):
         self.controller.models_failed.connect(self._on_models_failed)
         self.controller.result_ready.connect(self._on_result)
         self.controller.all_done.connect(self._on_all_done)
+        self.controller.groups_ready.connect(self._on_groups_ready)
         self._apply_default_engine()
 
     def _apply_default_engine(self) -> None:
@@ -170,6 +189,7 @@ class ResultPanel(QWidget):
         self._set_preview()
         QTimer.singleShot(0, self._rescale_preview)
         self.text_edit.clear()
+        self._refresh_pills()
         self.last_engine = ""
         self.last_model_label = ""
         self._set_running(False)
@@ -183,6 +203,7 @@ class ResultPanel(QWidget):
         self.set_capture(CaptureResult(image=image, mode=mode), entry.get("id"))
         if entry.get("text"):
             self.text_edit.setPlainText(entry["text"])
+        self._refresh_pills()
         if entry.get("engine"):
             idx = self.engine_combo.findData(entry["engine"])
             if idx >= 0:
@@ -344,8 +365,10 @@ class ResultPanel(QWidget):
         self._last_error = result.error
         if result.error:
             self.text_edit.setPlainText(result.error)
+            self._refresh_pills("")
         else:
             self.text_edit.setPlainText(result.text)
+            self._refresh_pills()
 
     def _on_all_done(self) -> None:
         self._set_running(False)
@@ -358,6 +381,7 @@ class ResultPanel(QWidget):
                 QApplication.clipboard().setText(text)
                 show_toast(self.window(), "Copied to clipboard", "success")
             self.extractionFinished.emit(text)
+            self._request_group_pills()
             if self._history_id:
                 from tex.ui.history import get_store
 
@@ -402,6 +426,75 @@ class ResultPanel(QWidget):
             f.write(text)
         show_toast(self.window(), f"Saved {path}", "success")
 
+
+    def _clear_pills(self) -> None:
+        while self.pills_lay.count() > 1:
+            item = self.pills_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def _add_pill(self, display: str, value: str) -> None:
+        pill = QPushButton(display)
+        pill.setObjectName("pill")
+        pill.setToolTip(value)
+        pill.setCursor(Qt.CursorShape.PointingHandCursor)
+        pill.clicked.connect(lambda _, v=value: self._copy_pill(v))
+        self.pills_lay.insertWidget(self.pills_lay.count() - 1, pill)
+
+    def _refresh_pills(self, text: str | None = None) -> None:
+        if text is None:
+            text = self.text_edit.toPlainText()
+        self._clear_pills()
+        numbers: list[str] = []
+        seen: set[str] = set()
+        for n in re.findall(r"\d+(?:\.\d+)?", text):
+            if n not in seen:
+                seen.add(n)
+                numbers.append(n)
+        self.pills_scroll.setVisible(bool(numbers))
+        for n in numbers:
+            self._add_pill(n, n)
+
+    def _set_group_pills(self, groups: list) -> None:
+        items: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for g in groups:
+            if not isinstance(g, dict):
+                continue
+            value = str(g.get("value") or "").strip()
+            label = str(g.get("label") or "").strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            items.append((f"{label} {value}".strip(), value))
+        if not items:
+            return
+        self._clear_pills()
+        for display, value in items:
+            self._add_pill(display, value)
+        self.pills_scroll.setVisible(True)
+
+    def _request_group_pills(self) -> None:
+        engine_name = self.last_engine
+        if not engine_name or engine_name == "tesseract":
+            return
+        model_id = self.last_model_label.split(",")[0].strip()
+        try:
+            engine = make_engine(engine_name)
+        except Exception:
+            return
+        if not hasattr(engine, "group_text"):
+            return
+        self.controller.group_numbers(engine, self.text_edit.toPlainText(), model_id)
+
+    def _on_groups_ready(self, engine_name: str, groups: list) -> None:
+        if engine_name != self.last_engine:
+            return
+        self._set_group_pills(groups)
+
+    def _copy_pill(self, value: str) -> None:
+        QApplication.clipboard().setText(value)
+        show_toast(self.window(), f"Copied {value}", "success")
 
     def save_image(self) -> None:
         self._save_image(self._image)

@@ -129,4 +129,11 @@ QFrame#settingsSection {{
 }}
 QLabel#settingsSectionTitle {{ font-size: 10pt; font-weight: 600; color: {ACCENT};
     text-transform: uppercase; letter-spacing: 0.5px; background: transparent; }}
+
+QPushButton#pill {{
+    background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 13px;
+    padding: 3px 12px; font-weight: 600; font-family: {MONO_FAMILY};
+}}
+QPushButton#pill:hover {{ border-color: {ACCENT}; color: {ACCENT}; }}
+QPushButton#pill:pressed {{ background: {CARD}; }}
 """

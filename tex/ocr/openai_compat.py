@@ -6,7 +6,7 @@ import requests
 
 from tex.config import get_key
 from tex.constants import PROVIDERS, TIMEOUT_HTTP, VISION_HINTS
-from tex.ocr.base import OcrEngine, OcrError, encode_image, strip_fences
+from tex.ocr.base import GROUP_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
 from tex.ocr.models import ModelInfo, OcrResult, short_model
 
 
@@ -91,6 +91,26 @@ class OpenAICompatEngine(OcrEngine):
             latency_ms=latency,
             usage=dict(j.get("usage") or {}),
         )
+
+    def group_text(self, text: str, model_id: str) -> str:
+        payload = {
+            "model": model_id,
+            "temperature": 0,
+            "messages": [{"role": "user", "content": GROUP_PROMPT + text}],
+        }
+        r = requests.post(
+            f"{self.meta['base_url']}/chat/completions",
+            json=payload,
+            headers=self._headers(),
+            timeout=TIMEOUT_HTTP,
+        )
+        if r.status_code != 200:
+            raise OcrError(f"{self.label} {r.status_code}: {r.text[:300]}")
+        j = r.json()
+        try:
+            return j["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError) as e:
+            raise OcrError(f"{self.label}: unexpected response shape: {j}") from e
 
 
 class GroqEngine(OpenAICompatEngine):

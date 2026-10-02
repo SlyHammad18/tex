@@ -6,7 +6,7 @@ import requests
 
 from tex.config import get_key
 from tex.constants import PROVIDERS, TIMEOUT_HTTP
-from tex.ocr.base import OcrEngine, OcrError, encode_image, strip_fences
+from tex.ocr.base import GROUP_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
 from tex.ocr.models import ModelInfo, OcrResult, short_model
 
 _EXCLUDE = (
@@ -102,3 +102,25 @@ class GeminiEngine(OcrEngine):
             latency_ms=latency,
             usage=usage,
         )
+
+    def group_text(self, text: str, model_id: str) -> str:
+        key = self._key()
+        payload = {
+            "contents": [{"parts": [{"text": GROUP_PROMPT + text}]}],
+            "generationConfig": {"temperature": 0},
+        }
+        r = requests.post(
+            f"{self.meta['base_url']}/models/{model_id}:generateContent",
+            params={"key": key},
+            json=payload,
+            timeout=TIMEOUT_HTTP,
+        )
+        if r.status_code != 200:
+            raise OcrError(f"{self.label} {r.status_code}: {r.text[:300]}")
+        j = r.json()
+        cands = j.get("candidates") or []
+        if not cands:
+            reason = (j.get("promptFeedback") or {}).get("blockReason", "no candidates returned")
+            raise OcrError(f"{self.label}: {reason}")
+        parts = (cands[0].get("content") or {}).get("parts") or []
+        return "".join(p.get("text", "") for p in parts)
