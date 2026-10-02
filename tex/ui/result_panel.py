@@ -53,6 +53,7 @@ class ResultPanel(QWidget):
         self._auto_spec: dict | None = None
         self._cancelled = False
         self._filling_models = False
+        self._last_error: str | None = None
         self.last_engine = ""
         self.last_model_label = ""
 
@@ -305,6 +306,7 @@ class ResultPanel(QWidget):
         self.last_model_label = ", ".join(model_ids)
         self._cancelled = False
         self._pending = len(model_ids)
+        self._last_error = None
         self.text_edit.clear()
         self._set_running(True)
         self.controller.extract(engine, self._image, model_ids, prompt)
@@ -339,6 +341,7 @@ class ResultPanel(QWidget):
         show_toast(self.window(), "Extraction canceled")
 
     def _on_result(self, result: OcrResult) -> None:
+        self._last_error = result.error
         if result.error:
             self.text_edit.setPlainText(result.error)
         else:
@@ -351,6 +354,9 @@ class ResultPanel(QWidget):
             return
         text = self.text_edit.toPlainText().strip()
         if text:
+            if not self._last_error:
+                QApplication.clipboard().setText(text)
+                show_toast(self.window(), "Copied to clipboard", "success")
             self.extractionFinished.emit(text)
             if self._history_id:
                 from tex.ui.history import get_store
