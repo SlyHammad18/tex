@@ -5,6 +5,7 @@ import threading
 from PySide6.QtCore import QObject, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor, QGuiApplication, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from PIL import Image
 from tex.capture import grab_raw, interactive_select, is_wayland
 from tex.capture.base import CaptureCanceled, CaptureMode, CaptureResult, crop_image
 from tex.ui import theme
@@ -115,6 +117,11 @@ class MainWindow(QMainWindow):
         shot_btn.setToolTip("Capture a screen region (tex --select)")
         shot_btn.clicked.connect(lambda: self._start_capture(CaptureMode.SELECT))
         header.addWidget(shot_btn)
+        open_btn = QPushButton("Open image")
+        open_btn.setIcon(render_icon("image", 16, theme.ACCENT))
+        open_btn.setToolTip("Load an image from files")
+        open_btn.clicked.connect(self._open_image)
+        header.addWidget(open_btn)
         header.addSpacing(8)
         gear = QToolButton()
         gear.setObjectName("iconBtn")
@@ -156,6 +163,10 @@ class MainWindow(QMainWindow):
         es_lay.addWidget(es_sub)
         es_lay.addSpacing(8)
         es_lay.addWidget(es_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        es_open = QPushButton("Open image")
+        es_open.setFixedHeight(36)
+        es_open.clicked.connect(self._open_image)
+        es_lay.addWidget(es_open, alignment=Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(self.empty_state, 1)
 
         return page
@@ -210,8 +221,6 @@ class MainWindow(QMainWindow):
     def _open_history(self, item: QListWidgetItem) -> None:
         entry = item.data(Qt.ItemDataRole.UserRole)
         try:
-            from PIL import Image
-
             image = Image.open(entry["image"]).convert("RGB")
         except Exception as e:
             show_toast(self, f"Could not open capture: {e}", "error")
@@ -221,6 +230,19 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(1)
 
     # ---------- capture flow ----------
+
+    def _open_image(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open image", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp *.gif *.tiff)"
+        )
+        if not path:
+            return
+        try:
+            image = Image.open(path).convert("RGB")
+        except Exception as e:
+            show_toast(self, f"Could not open image: {e}", "error")
+            return
+        self._finish_capture(image, CaptureMode.SELECT)
 
     def _start_capture(self, mode: CaptureMode) -> None:
         dpr = QGuiApplication.primaryScreen().devicePixelRatio()

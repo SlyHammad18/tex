@@ -18,6 +18,7 @@ ICONS: dict[str, str] = {
     "check": '<circle cx="12" cy="12" r="9" fill="none" stroke="{c}" stroke-width="1.7"/><path d="M8.5 12.5l2.5 2.5 4.5-5" fill="none" stroke="{c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
     "warning": '<path d="M12 3l9.5 16.5h-19z" fill="none" stroke="{c}" stroke-width="1.7" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="14" stroke="{c}" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="16.8" r="1" fill="{c}"/>',
     "close": '<line x1="6" y1="6" x2="18" y2="18" stroke="{c}" stroke-width="1.7" stroke-linecap="round"/><line x1="18" y1="6" x2="6" y2="18" stroke="{c}" stroke-width="1.7" stroke-linecap="round"/>',
+    "image": '<rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="{c}" stroke-width="1.7"/><circle cx="9" cy="9.5" r="1.6" fill="{c}"/><path d="M6 16.5l4-4 3 3 2.5-2.5 3.5 3.5" fill="none" stroke="{c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
 }
 
 

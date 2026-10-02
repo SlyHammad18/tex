@@ -1,3 +1,1 @@
-- Add QR / Barcode Scan
 - Question Mode (Solve the Questions and Give Answers)
-- Allow to Add my Own Images
