@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QEasingCurve, QParallelAnimationGroup, QPropertyAnimation, QRect, Qt, QTimer, Signal
-from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QWidget
 
 from tex.ui import theme
 
-_kind_map = {
-    "info": ("toast", theme.MUTED),
-    "success": ("toastSuccess", theme.OK),
-    "error": ("toastError", theme.ERR),
-}
+_kind_map = {"info": "toast", "success": "toastSuccess", "error": "toastError"}
 _durations = {"info": 3000, "success": 4000, "error": 5000}
-_icons = {"info": "ⓘ", "success": "✓", "error": "⚠"}
 
 
 class Toast(QFrame):
@@ -30,43 +25,35 @@ class Toast(QFrame):
         self._opacity.setOpacity(0.0)
 
         lay = QHBoxLayout(self)
-        lay.setContentsMargins(10, 8, 6, 8)
-        lay.setSpacing(8)
-
-        self.icon_label = QLabel(_icons["info"], self)
-        self.icon_label.setObjectName("toastIcon")
-        lay.addWidget(self.icon_label)
+        lay.setContentsMargins(14, 9, 14, 9)
 
         self.label = QLabel(self)
         self.label.setObjectName("toastText")
         self.label.setWordWrap(True)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(self.label, 1)
 
-        self.close_btn = QPushButton("✕", self)
-        self.close_btn.setObjectName("toastClose")
-        self.close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.close_btn.clicked.connect(self._start_fade_out)
-        lay.addWidget(self.close_btn)
-
         self.hide()
+
+    def mousePressEvent(self, event) -> None:
+        self._start_fade_out()
 
     def popup(self, text: str, kind: str = "info") -> None:
         self._text = text
         self._kind = kind
-        name, _color = _kind_map.get(kind, _kind_map["info"])
+        name = _kind_map.get(kind, "toast")
         if self.objectName() != name:
             self.setObjectName(name)
             self.style().unpolish(self)
             self.style().polish(self)
 
-        self.icon_label.setText(_icons.get(kind, _icons["info"]))
         self.label.setText(text)
         self.label.adjustSize()
 
-        w = min(max(self.label.width() + 60, 200), self.parentWidget().width() - 48)
-        self.label.setFixedWidth(w - 60)
+        w = min(max(self.label.width() + 40, 200), self.parentWidget().width() - 48)
+        self.label.setFixedWidth(w - 40)
         self.label.adjustSize()
-        h = max(self.label.height() + 16, 40)
+        h = max(self.label.height() + 20, 40)
         self.setFixedSize(w, h)
 
         self._reposition()

@@ -1,5 +1,5 @@
 - Add QR / Barcode Scan
 - Add Translate
-- Fix Notification
 - Question Mode (Solve the Questions and Give Answers)
 - Keyboard Shortcuts
+- Allow to Add my Own Images

@@ -27,7 +27,6 @@ QLabel#logo {{ font-size: 16pt; font-weight: 700; color: {ACCENT}; }}
 QLabel#muted, QLabel#hint {{ color: {MUTED}; }}
 QLabel#hint {{ font-size: 9pt; }}
 QLabel#imagePreview {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; }}
-QLabel#emptyIcon {{ font-size: 48pt; color: {MUTED}; }}
 QLabel#emptyTitle {{ font-size: 14pt; font-weight: 600; color: {TEXT}; }}
 QLabel#emptySub {{ font-size: 10pt; color: {MUTED}; }}
 
@@ -105,23 +104,15 @@ QToolTip {{ background: {CARD}; color: {TEXT}; border: 1px solid {BORDER}; paddi
 QDialogButtonBox QPushButton {{ min-width: 84px; }}
 
 QFrame#toast {{
-    background: {CARD}; border: 1px solid {BORDER}; border-radius: 8px;
-    border-left: 3px solid {MUTED};
+    background: {CARD}; border: 1px solid {MUTED}; border-radius: 8px;
 }}
 QFrame#toastSuccess {{
     background: #16281C; border: 1px solid {OK}; border-radius: 8px;
-    border-left: 3px solid {OK};
 }}
 QFrame#toastError {{
     background: #2A1719; border: 1px solid {ERR}; border-radius: 8px;
-    border-left: 3px solid {ERR};
 }}
 QLabel#toastText {{ background: transparent; }}
-QPushButton#toastClose {{
-    background: transparent; border: none; color: {MUTED}; font-size: 12pt;
-    padding: 2px 6px; border-radius: 4px;
-}}
-QPushButton#toastClose:hover {{ color: {TEXT}; background: {CARD}; }}
 
 QFrame#settingsSection {{
     background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px;
