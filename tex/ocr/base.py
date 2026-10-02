@@ -80,6 +80,18 @@ def parse_translation(raw: str) -> tuple[str, str]:
     return str(data.get("language") or "").strip(), str(data.get("translation") or "").strip()
 
 
+QUESTION_EXTRACT_PROMPT = (
+    "Extract the question from this image as plain text. Include every multiple choice option "
+    "if present. Do not answer it. If there is no question, extract all visible text."
+)
+
+ANSWER_PROMPT = (
+    "Answer the following question directly. If it is multiple choice, reply with only the "
+    "correct option (its letter or text). Reply with ONLY the answer, no explanation, "
+    "no preamble.\n\nQuestion:\n"
+)
+
+
 class OcrEngine(ABC):
     name: str = ""
     label: str = ""

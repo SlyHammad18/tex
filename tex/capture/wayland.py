@@ -5,6 +5,7 @@ import io
 import os
 import shutil
 import subprocess
+import tempfile
 import urllib.parse
 import uuid
 
@@ -41,6 +42,30 @@ def _grim_select() -> Image.Image:
     spec = region.stdout.decode().strip()
     out = subprocess.run(["grim", "-g", spec, "-"], capture_output=True, check=True, timeout=30)
     return Image.open(io.BytesIO(out.stdout)).convert("RGB")
+
+
+def _cli_screenshot_fallback() -> Image.Image | None:
+    """Headless full-screen shot via desktop CLI tools when the portal refuses."""
+    out = os.path.join(tempfile.gettempdir(), f"tex-shot-{uuid.uuid4().hex}.png")
+    for cmd in (
+        ["gnome-screenshot", "-f", out],
+        ["spectacle", "-b", "-n", "-o", out],
+    ):
+        if not shutil.which(cmd[0]):
+            continue
+        try:
+            r = subprocess.run(cmd, capture_output=True, timeout=30)
+        except Exception:
+            continue
+        if r.returncode == 0 and os.path.exists(out):
+            try:
+                return Image.open(out).convert("RGB")
+            finally:
+                try:
+                    os.remove(out)
+                except OSError:
+                    pass
+    return None
 
 
 async def _portal_screenshot(interactive: bool) -> str:
@@ -115,7 +140,15 @@ def portal_screenshot(interactive: bool = False) -> Image.Image:
 def grab_fullscreen(interactive: bool = False) -> Image.Image:
     if _grim_slurp_available() and _wlroots_desktop():
         return _grim_fullscreen()
-    return portal_screenshot(interactive=False)
+    try:
+        return portal_screenshot(interactive=interactive)
+    except (CaptureCanceled, RuntimeError):
+        if interactive:
+            raise
+        img = _cli_screenshot_fallback()
+        if img is None:
+            raise
+        return img
 
 
 def interactive_select() -> Image.Image:

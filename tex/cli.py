@@ -31,4 +31,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--prompt", help="custom extraction prompt")
     p.add_argument("--clipboard", action="store_true", help="copy result text to clipboard")
     p.add_argument("--save", metavar="PATH", help="save result text to a .txt file")
+    p.add_argument(
+        "--question",
+        action="store_true",
+        help="headless: screenshot the full screen, extract the question and notify the answer",
+    )
     return p.parse_args(argv)

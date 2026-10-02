@@ -6,7 +6,7 @@ import requests
 
 from tex.config import get_key
 from tex.constants import PROVIDERS, TIMEOUT_HTTP, VISION_HINTS
-from tex.ocr.base import GROUP_PROMPT, TRANSLATE_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
+from tex.ocr.base import ANSWER_PROMPT, GROUP_PROMPT, TRANSLATE_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
 from tex.ocr.models import ModelInfo, OcrResult, short_model
 
 
@@ -117,6 +117,9 @@ class OpenAICompatEngine(OcrEngine):
 
     def translate_text(self, text: str, model_id: str) -> str:
         return self._complete(TRANSLATE_PROMPT + text, model_id)
+
+    def answer_text(self, text: str, model_id: str) -> str:
+        return strip_fences(self._complete(ANSWER_PROMPT + text, model_id).strip())
 
 
 class GroqEngine(OpenAICompatEngine):

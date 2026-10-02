@@ -49,6 +49,13 @@ def _forward_to_instance(args) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+
+    if getattr(args, "question", False):
+        from tex.question_mode import run_question_mode
+
+        return run_question_mode(
+            getattr(args, "model", "") or "", getattr(args, "engine", "") or ""
+        )
     _install_quiet_logging()
 
     app = QApplication(["tex"])
