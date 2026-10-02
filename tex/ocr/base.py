@@ -3,6 +3,11 @@ from __future__ import annotations
 import base64
 import io
 import json
+
+try:
+    import tomllib
+except ImportError:  # Python < 3.11
+    import tomli as tomllib
 from abc import ABC, abstractmethod
 
 from PIL import Image

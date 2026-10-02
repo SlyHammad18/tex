@@ -4,7 +4,11 @@ import json
 import os
 import stat
 from pathlib import Path
-import tomllib
+
+try:
+    import tomllib
+except ImportError:  # Python < 3.11
+    import tomli as tomllib
 
 try:
     import tomli_w

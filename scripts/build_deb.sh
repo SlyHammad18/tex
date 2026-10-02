@@ -19,9 +19,12 @@ else
 fi
 
 echo ">> installing application into staging tree"
-$PIP install --quiet --no-compile --no-deps --target "$STAGE/opt/tex/lib" .
+$PIP install --quiet --no-compile --no-deps --target "$STAGE/opt/tex/lib" . \
+    || $PIP install --quiet --no-compile --no-deps --break-system-packages --target "$STAGE/opt/tex/lib" .
 $PIP install --quiet --no-compile --upgrade --target "$STAGE/opt/tex/lib" \
-    PySide6-Essentials mss pytesseract dbus-next python-xlib tomli-w
+    PySide6-Essentials mss pytesseract dbus-next python-xlib tomli-w tomli \
+    || $PIP install --quiet --no-compile --upgrade --break-system-packages --target "$STAGE/opt/tex/lib" \
+    PySide6-Essentials mss pytesseract dbus-next python-xlib tomli-w tomli
 find "$STAGE/opt/tex/lib" -depth -name "__pycache__" -type d -exec rm -rf {} +
 
 echo ">> wrapper, desktop entry, icon"
@@ -41,15 +44,16 @@ Version: ${VERSION}-1
 Section: graphics
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.10), python3-pil, python3-requests
-Recommends: tesseract-ocr, xdg-desktop-portal
+Depends: python3 (>= 3.10), python3-pil, python3-requests, libgl1, libegl1, libxkbcommon0,
+ libfontconfig1, libdbus-1-3, libglib2.0-0
+Recommends: tesseract-ocr, xdg-desktop-portal, gnome-screenshot | spectacle, libnotify-bin
 Suggests: python3-keyring, grim, slurp
 Maintainer: SlyHammad18
 Homepage: https://github.com/SlyHammad18/tex
 Description: Screenshot capture with AI text extraction
  Capture a region, window, or the full screen and extract text offline
  via Tesseract or online via Gemini, Groq, Cerebras, and OpenRouter
- vision models, including parallel multi-model compare mode.
+ vision models, with translation and headless question answering.
 EOF
 
 cat > "$STAGE/DEBIAN/postinst" <<'EOF'
