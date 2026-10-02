@@ -58,6 +58,28 @@ def parse_number_groups(raw: str) -> list:
     return data if isinstance(data, list) else []
 
 
+TRANSLATE_PROMPT = (
+    "Detect the language of the following text, then translate it to English. "
+    'Respond with ONLY a JSON object like {"language": "German", "translation": "Hello"} '
+    "where language is the detected language name in English. "
+    "No markdown, no commentary.\n\nText:\n"
+)
+
+
+def parse_translation(raw: str) -> tuple[str, str]:
+    raw = (raw or "").strip()
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end <= start:
+        return "", ""
+    try:
+        data = json.loads(raw[start : end + 1])
+    except Exception:
+        return "", ""
+    if not isinstance(data, dict):
+        return "", ""
+    return str(data.get("language") or "").strip(), str(data.get("translation") or "").strip()
+
+
 class OcrEngine(ABC):
     name: str = ""
     label: str = ""

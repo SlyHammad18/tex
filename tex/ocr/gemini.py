@@ -6,7 +6,7 @@ import requests
 
 from tex.config import get_key
 from tex.constants import PROVIDERS, TIMEOUT_HTTP
-from tex.ocr.base import GROUP_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
+from tex.ocr.base import GROUP_PROMPT, TRANSLATE_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
 from tex.ocr.models import ModelInfo, OcrResult, short_model
 
 _EXCLUDE = (
@@ -103,10 +103,10 @@ class GeminiEngine(OcrEngine):
             usage=usage,
         )
 
-    def group_text(self, text: str, model_id: str) -> str:
+    def _complete(self, prompt: str, model_id: str) -> str:
         key = self._key()
         payload = {
-            "contents": [{"parts": [{"text": GROUP_PROMPT + text}]}],
+            "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0},
         }
         r = requests.post(
@@ -124,3 +124,9 @@ class GeminiEngine(OcrEngine):
             raise OcrError(f"{self.label}: {reason}")
         parts = (cands[0].get("content") or {}).get("parts") or []
         return "".join(p.get("text", "") for p in parts)
+
+    def group_text(self, text: str, model_id: str) -> str:
+        return self._complete(GROUP_PROMPT + text, model_id)
+
+    def translate_text(self, text: str, model_id: str) -> str:
+        return self._complete(TRANSLATE_PROMPT + text, model_id)

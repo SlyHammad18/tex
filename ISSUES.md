@@ -1,5 +1,3 @@
 - Add QR / Barcode Scan
-- Add Translate
 - Question Mode (Solve the Questions and Give Answers)
-- Keyboard Shortcuts
 - Allow to Add my Own Images

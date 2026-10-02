@@ -6,7 +6,7 @@ import requests
 
 from tex.config import get_key
 from tex.constants import PROVIDERS, TIMEOUT_HTTP, VISION_HINTS
-from tex.ocr.base import GROUP_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
+from tex.ocr.base import GROUP_PROMPT, TRANSLATE_PROMPT, OcrEngine, OcrError, encode_image, strip_fences
 from tex.ocr.models import ModelInfo, OcrResult, short_model
 
 
@@ -92,11 +92,11 @@ class OpenAICompatEngine(OcrEngine):
             usage=dict(j.get("usage") or {}),
         )
 
-    def group_text(self, text: str, model_id: str) -> str:
+    def _complete(self, prompt: str, model_id: str) -> str:
         payload = {
             "model": model_id,
             "temperature": 0,
-            "messages": [{"role": "user", "content": GROUP_PROMPT + text}],
+            "messages": [{"role": "user", "content": prompt}],
         }
         r = requests.post(
             f"{self.meta['base_url']}/chat/completions",
@@ -111,6 +111,12 @@ class OpenAICompatEngine(OcrEngine):
             return j["choices"][0]["message"]["content"] or ""
         except (KeyError, IndexError) as e:
             raise OcrError(f"{self.label}: unexpected response shape: {j}") from e
+
+    def group_text(self, text: str, model_id: str) -> str:
+        return self._complete(GROUP_PROMPT + text, model_id)
+
+    def translate_text(self, text: str, model_id: str) -> str:
+        return self._complete(TRANSLATE_PROMPT + text, model_id)
 
 
 class GroqEngine(OpenAICompatEngine):

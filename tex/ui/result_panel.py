@@ -72,6 +72,8 @@ class ResultPanel(QWidget):
             self.engine_combo.addItem(elabel, eid)
         self.model_combo = QComboBox()
         self.model_combo.setMinimumWidth(230)
+        self.translate_check = QCheckBox("Translate")
+        self.translate_check.setToolTip("Translate extracted text to English (AI engines)")
         self.custom_check = QCheckBox("Custom prompt")
         self.extract_btn = QPushButton("Extract")
         self.extract_btn.setProperty("variant", "primary")
@@ -81,10 +83,16 @@ class ResultPanel(QWidget):
         bar.addWidget(self.engine_combo)
         bar.addWidget(QLabel("Model"))
         bar.addWidget(self.model_combo, 1)
+        bar.addWidget(self.translate_check)
         bar.addWidget(self.custom_check)
         bar.addWidget(self.extract_btn)
         bar.addWidget(self.cancel_btn)
         lay.addLayout(bar)
+
+        self.lang_label = QLabel()
+        self.lang_label.setObjectName("muted")
+        self.lang_label.setVisible(False)
+        lay.addWidget(self.lang_label)
 
         self.prompt_edit = QPlainTextEdit()
         self.prompt_edit.setPlaceholderText(DEFAULT_PROMPT)
@@ -145,6 +153,9 @@ class ResultPanel(QWidget):
         self.engine_combo.activated.connect(self._persist_engine)
         self.model_combo.activated.connect(self._persist_model)
         self.custom_check.toggled.connect(self.prompt_edit.setVisible)
+        self.custom_check.toggled.connect(self._update_extract_label)
+        self.translate_check.toggled.connect(self._update_extract_label)
+        self._update_extract_label()
         self.extract_btn.clicked.connect(self._on_extract_clicked)
         self.cancel_btn.clicked.connect(self.cancel_extraction)
         self.controller.models_ready.connect(self._on_models_ready)
@@ -152,7 +163,16 @@ class ResultPanel(QWidget):
         self.controller.result_ready.connect(self._on_result)
         self.controller.all_done.connect(self._on_all_done)
         self.controller.groups_ready.connect(self._on_groups_ready)
+        self.controller.translation_ready.connect(self._on_translation_ready)
         self._apply_default_engine()
+
+    def _update_extract_label(self) -> None:
+        if self.translate_check.isChecked():
+            self.extract_btn.setText("Translate")
+        elif self.custom_check.isChecked():
+            self.extract_btn.setText("Go")
+        else:
+            self.extract_btn.setText("Extract")
 
     def _apply_default_engine(self) -> None:
         name = config.load_config()["general"].get("engine", "tesseract")
@@ -190,6 +210,7 @@ class ResultPanel(QWidget):
         QTimer.singleShot(0, self._rescale_preview)
         self.text_edit.clear()
         self._refresh_pills()
+        self.lang_label.setVisible(False)
         self.last_engine = ""
         self.last_model_label = ""
         self._set_running(False)
@@ -241,6 +262,7 @@ class ResultPanel(QWidget):
         name = self.engine_combo.currentData()
         if not name:
             return
+        self.translate_check.setEnabled(name != "tesseract")
         self.model_combo.clear()
         cached = self._model_cache.get(name)
         if cached is not None:
@@ -382,6 +404,8 @@ class ResultPanel(QWidget):
                 show_toast(self.window(), "Copied to clipboard", "success")
             self.extractionFinished.emit(text)
             self._request_group_pills()
+            if self.translate_check.isChecked():
+                self._request_translation()
             if self._history_id:
                 from tex.ui.history import get_store
 
@@ -491,6 +515,45 @@ class ResultPanel(QWidget):
         if engine_name != self.last_engine:
             return
         self._set_group_pills(groups)
+
+    def _request_translation(self) -> None:
+        engine_name = self.last_engine
+        if not engine_name or engine_name == "tesseract":
+            return
+        model_id = self.last_model_label.split(",")[0].strip()
+        try:
+            engine = make_engine(engine_name)
+        except Exception:
+            return
+        if not hasattr(engine, "translate_text"):
+            return
+        self.lang_label.setText("Translating…")
+        self.lang_label.setVisible(True)
+        self.controller.translate_text(engine, self.text_edit.toPlainText(), model_id)
+
+    def _on_translation_ready(self, engine_name: str, result: object) -> None:
+        if engine_name != self.last_engine:
+            return
+        lang, translated = result
+        if not translated:
+            self.lang_label.setVisible(False)
+            return
+        self.text_edit.setPlainText(translated)
+        if lang:
+            self.lang_label.setText(f"Detected {lang} -> English")
+            toast = f"Translated {lang} -> English"
+        else:
+            self.lang_label.setText("Translated to English")
+            toast = "Translated to English"
+        self.lang_label.setVisible(True)
+        QApplication.clipboard().setText(translated)
+        show_toast(self.window(), toast, "success")
+
+    def _on_translation_failed(self, engine_name: str, error: str) -> None:
+        if engine_name != self.last_engine:
+            return
+        self.lang_label.setVisible(False)
+        show_toast(self.window(), "Translation failed", "error")
 
     def _copy_pill(self, value: str) -> None:
         QApplication.clipboard().setText(value)
